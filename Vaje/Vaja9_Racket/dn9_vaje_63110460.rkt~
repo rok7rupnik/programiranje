@@ -1,0 +1,85 @@
+#lang racket
+;osnovne definicije
+;
+(define s "hello") ; val s = "hello"
+(define x 3)
+(define y (+ x 2)) ; plus je funkcijski klic
+; define ni funkcija ampak klicna beseda
+
+(define kub1 
+  (lambda (x)
+    (* x (* x x))))
+
+(define (kub2 x)
+  (* x x x))
+
+(define (pow1 x y)
+  (if (= y 0)
+      1
+      (* x (pow1 x (- y 1)))))
+
+(define pow2; curry
+  (lambda (x)
+    (lambda (y)
+      (pow1 x y))))
+
+;seznami
+;null ~ prazen seznam []
+;cons ~ konstruktor seznama
+;car ~ glava seznama
+;cdr ~ rep seznama
+;null? ~ ali je prazen seznam
+;(list e1 ... en)
+
+;vhod so vedno stevila
+(define (sum sez)
+  (if (null? sez)
+      0
+      (+ (car sez) (sum (cdr sez)))))
+
+(define (moj-append seznam1 seznam2)
+  (if (null? seznam1)
+      seznam2
+      (cons (car seznam1) (moj-append (cdr seznam1) seznam2))))
+
+(define (moj-map funkcija seznam)
+  (if (null? seznam)
+      null
+      (cons (funkcija (car seznam)) (moj-map funkcija (cdr seznam)))))
+
+(define (moj-reverse sez)
+  (define (obracaj sez acc)
+    (if (null? sez)
+        acc
+        (obracaj (cdr sez) (cons(car sez) acc))))
+  (obracaj sez null))
+
+;(cond[(null? sez) acc]
+;     [#t (obracaj(...))] => |_=>
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Odstrani ponovljene ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;odstrani zaporedoma ponovljene
+(define (odstrani-ponovljene sez)
+  (cond [(null? sez) null]
+        [(null? (cdr sez)) sez]
+        [#t (if (equal? (car sez) (car (cdr sez)))
+                (odstrani-ponovljene (cdr sez))
+                (cons (car sez) (odstrani-ponovljene (cdr sez))))]))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; QUEUE ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (queue) 
+  (cons null (cons null null)))
+
+(define (empty-queue? q)
+       (and (null? (car q)) (null? (car (cdr q)))))
+
+(define (enqueue x q)
+  (cons (cons x (car q)) (cdr q)))
+
+(define (dequeue q)
+  (cond [(empty-queue? q) (cons void q)]    ;(list null (reverse(first q)))
+        [(null? (car (cdr q))) (dequeue (cons null (cons (reverse (car q)) null)))]
+        [#t (cons (car (car (cdr q))) (cons (car q) (cons (cdr (cdr q))) null))]))
+                  ;=caadr q ... cdadr q

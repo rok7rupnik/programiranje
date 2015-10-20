@@ -1,0 +1,46 @@
+#lang racket
+(define test (konst 3))
+(define test1 (bool #t))
+(define test2 (interval 9 9))
+(define test3 (zdruzi (konst 9) (interval 0 9)))
+(define test4 (nic))
+
+(define test5 (ce-potem-sicer (bool #t) (konst 3) (interval 1 2)))
+(define test61 (je-konst? (nic)))
+(define test62 (je-interval? (nic)))
+(define test63 (je-nic? (nic)))
+(define test64 (je-nic? nic))
+
+(define test7 (negacija (bool #f)))
+(define test8 (negacija (konst 3)))
+(define test9 (negacija (konst -3)))
+(define test10 (negacija (interval 1 3)))
+(define test11 (negacija (interval -3 -1)))
+(define test12 (negacija (interval -3 2)))
+
+(define test13 (sestej (konst 3) (konst -3)))
+(define test14 (sestej (interval 1 3) (interval 2 2)))
+(define test15 (sestej (interval -3 -1) (konst 3)))
+(define test16 (sestej (konst 4) (interval -3 2)))
+
+(define test17 (zmnozi (konst 3) (konst 3)))
+(define test18 (zmnozi (interval 1 3) (interval 2 8)))
+(define test19 (zmnozi (interval -3 -1) (konst 3)))
+(define test20 (zmnozi (konst 4) (interval -3 2)))
+
+(define test21 (glava (interval -3 -1)))
+(define test22 (glava (zdruzi (konst 4) (interval -3 2))))
+
+(define test23 (rep (interval -3 -1)))
+(define test24 (rep (zdruzi (konst 4) (interval -3 2))))
+
+(define test25 (vecje (interval -3 -1) (interval 3 4)))
+(define test26 (vecje (konst 2) (konst 4)))
+
+(define test27 (presek (interval 5 7) (interval 3 4)))
+(define test28 (presek (interval 1 5) (interval 3 4)))
+(define test29 (presek (interval 3 4) (interval 1 5)))
+(define test30 (presek (interval 3 8) (interval 1 4)))
+(define test31 (presek (interval 3 8) (interval 7 9)))
+(define test32 (presek (interval 3 8) (interval 1 3)))
+(define test33 (presek (interval 3 8) (interval 8 9)))

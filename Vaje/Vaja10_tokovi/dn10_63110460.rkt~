@@ -1,0 +1,32 @@
+#lang racket
+; TOKOVI
+; tok je generator naslednjega para: (vresdnost, funkcija oz. generator naslednjika)
+(define moj-generator-stevil
+  (letrec ([f (lambda (x)
+                (cons (if (= (remainder x 3) 0)
+                          (- x)
+                          x)
+                      (lambda () (f (+ x 1)))))])
+    (lambda () (f 1))))
+
+(define (prvihn gen n)
+  (if (> n 1)
+      (let ([tok (gen)])
+        (begin (displayln (car tok))
+               (prvihn (cdr tok) (- n 1))))
+      (displayln (car (gen)))))
+
+;(prvihn moj-generator-stevil 7)
+
+(define (generiraj-tok fn arg)
+  (letrec ([f (lambda (x)
+                (cons x
+                      (lambda () (f (fn x arg)))))])
+  (lambda () (f arg))))
+
+(define naravna-stevila (generiraj-tok + 1))
+
+(define potence-stevila-dva (generiraj-tok * 2))
+
+;(prvihn potence-stevila-dva 7)
+

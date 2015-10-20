@@ -1,0 +1,49 @@
+#lang racket
+(define (prvihn gen n)
+  (if (> n 1)
+      (let ([tok (gen)])
+        (begin (displayln (car tok))
+               (prvihn (cdr tok) (- n 1))))
+      (displayln (car (gen)))))
+
+;(prvihn moj-generator-stevil 7)
+
+(define (pascal)
+  (define (nasl-vrstica prejsnja)
+    (cond ([(null? prejsnja) null]
+           [(null? (cdr prejsnja)) (list 1)]
+           [#t (cons (+ (first prejsnja) (second prejsnja)) (nasl-vrstica (cdr prejsnja)))])))
+  (define (nasl-cela-vrstica prejsnja)
+    (cons 1 (nasl-vrstica prejsnja)))
+  (define (prideluj-trikotnik prejsnja)
+    (let ([naslednja (nasl-cela-vrstica prejsnja)])
+      (cons naslednja (lambda () (prideluj-trikotnik naslednja)))))
+  (lambda () (prideluj-trikotnik null)))
+
+;(prvihn pascal 5)
+
+(define (st-nacinov n)
+  (define (racunaj i)
+    (cond [(>= i n) 1]
+          [#t (+ (racunaj (+ i 1)) (st-nacinov (- n i)))]))
+    (cond [(< n 0) 0]
+          [(= n 0) 1]
+          [#t (racunaj 1)]))
+
+(define (st-nacinov-memo n)
+  (let ([resitve null])
+    (lambda (n)
+      (define (racunaj i)
+        (cond [(= i n) 1]
+              [#t (+ (racunaj (+ i 1)) (st-nacinov-memo (- n i)))]))
+      (let ([odgovor (assoc n resitve)])
+        (if odgovor
+            odgovor
+            (let ([novi-odg (cond [(< n 0) 0]
+                                  [(= n 0) 1]
+                                  [#t (racunaj 1)])])
+              (set! resitve (cons (cons n novi-odg) resitve))
+              novi-odg))))))
+
+;((st-nacinov-memo 10) 10)
+          

@@ -1,0 +1,111 @@
+﻿; EXAMPLES FOR PROGRAMIRANJE - SEMINAR 2
+
+; Primeri uporabe podatkovnih tipov (intervalov)
+; Using data types (intervals in particular)
+
+> (jais (sestej (interval -3 7) (konst 4)) null)
+(interval 1 11)
+
+> (jais (zmnozi (interval 3 5) 
+                (interval 2 7)) null)
+(interval 6 35)	
+
+> (jais (zmnozi (interval -3 7) 
+                (interval 4 8)) null)
+(interval -24 56)
+
+> (jais (presek (interval 3 7) 
+                (interval 4 8)) null)
+
+(interval 4 7)
+
+
+
+; Primeri uporabe spremenljivk
+; Usage of variables
+
+> (jais (naj-bo "x" (konst 1) 
+(sestej (sprem "x") (konst 2))) null)
+(konst 3)
+
+> (jais (naj-bo "x" (konst 1) 
+(sestej 
+(naj-bo "x" (konst 10) 
+           (zmnozi (konst 2) 
+                   (sprem "x"))) 
+           (sprem "x"))) null)
+(konst 21)
+
+> (jais (naj-bo "x" (konst 2)
+           	(naj-bo "y" (sprem "x")
+                       (naj-bo "x" (konst 1)
+                            	    (sestej (sprem "x") 
+                                          (sprem "y"))))) null)
+(konst 3)
+
+
+
+
+; Uporaba funkcij
+; Usage of functions
+
+> (jais (klici (funkcija "povecaj" 
+                       (list "n") 
+                       (sestej (sprem "n") 
+                               (konst 1))) 
+               (list (konst 5))) null)
+(konst 6)
+
+> (jais (klici (funkcija #f 
+                       (list "x" "y") 
+                       (zmnozi (sprem "x") (sprem "y")))
+               (list (konst 2) (konst 5))) null)
+(konst 10)
+
+> (jais (naj-bo "f" 
+             (funkcija #f 
+                       (list "x") 
+                       (sestej (sprem "x") (konst 1)))
+             (klici (sprem "f") (list (konst 2)))) null) 
+(konst 3)
+
+>  (jais (klici (funkcija "fakulteta" 
+                       (list "x") 
+                       (ce-potem-sicer (vecje (konst 1) (sprem "x")) 
+                                 (konst 1) 
+                                 (zmnozi (sprem "x") 
+                                   (klici (sprem "fakulteta")
+                                   (list (sestej (sprem "x") (konst -1))))))) 
+                (list (konst 5))) null)
+(konst 120)
+
+>  (jais (klici (funkcija "f" 
+                       (list "x" "y") 
+                       (sestej (sprem "x") (sprem "y"))) 
+             (list (konst 2) 
+                   (klici (funkcija "g" 
+                                    (list "x") 
+                                    (sestej (sprem "x") (konst 5)))
+                          (list (konst 16))))) null) 
+(konst 23)
+
+> (jais (naj-bo "s" (zdruzi (konst 6) 
+                           (zdruzi (konst 3) (zdruzi (konst -2) (nic)))) 
+               (klici (funkcija "vsota" 
+                                (list "x") 
+                                (ce-potem-sicer (je-nic? (sprem "x")) 
+                                               (konst 0) 
+                                               (sestej 
+                                               (glava (sprem "x")) 
+                                               (klici (sprem "vsota") 
+                                                   (list (rep (sprem "x"))))))) 
+                      (list (sprem "s")))) null)
+(konst 7)
+
+> (jais (naj-bo "x" (konst 2)
+           	(naj-bo "y" (sprem "x")
+                       (naj-bo "x" (konst 1)
+                            	    (sestej (sprem "x") 
+                                          (sprem "y"))))) null)
+(konst 3)
+

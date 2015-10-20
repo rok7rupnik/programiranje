@@ -1,0 +1,206 @@
+#lang racket
+
+(struct konst (int) #:transparent)                      ; konstanta; argument je število
+(struct bool (b) #:transparent)                         ; b ima lahko vrednost true or false
+(struct interval (od do) #:transparent)                 ; interval med stevili a in b
+(struct zdruzi (e1 e2) #:transparent)                   ; par izrazov v jeziku jais
+(struct nic () #:transparent)                           ; null v jeziku jais
+
+
+(struct je-konst? (e) #:transparent)                    ; preverjanje za tip konst
+(struct je-bool? (e) #:transparent)                     ; preverjanje za tip bool
+(struct je-interval? (e) #:transparent)                 ; preverjanje za tip interval
+(struct je-nic? (e) #:transparent)                      ; preverjanje za tip interval
+
+(struct ce-potem-sicer (b e1 e2) #:transparent)         ; evalvacija izraza e1 ali e2 glede na b
+(struct negacija (e) #:transparent)                     ; negacija izraza e
+(struct vecje (e1 e2) #:transparent)                    ; primerjava izrazov e1 ali e2 v primeru ko sta e1 in e2 oba konstanti ali intervala
+(struct glava (e) #:transparent)                        ; glava - zacetna tocka intervala ali prvi element para
+(struct rep (e) #:transparent)                          ; rep - koncna tocka intervala ali drugi element para
+
+(struct sestej (e1 e2) #:transparent)                   ; sestevanje izrazov e1 in e2 ce sta stevilski konstanti ali intervala
+(struct zmnozi (e1 e2) #:transparent)                   ; mnozenje izrazov e1 in e2 ce sta stevilski konstanti ali intervala
+(struct presek (e1 e2) #:transparent)                   ; mnozenje izrazov e1 in e2 ce sta stevilski konstanti ali intervala
+
+(struct naj-bo (s e1 e2) #:transparent)                 ; konstrukt, ki omogoca shranjevanje spremenljivk
+(struct sprem (s) #:transparent)                        ; konstrukt za branje spremenljivk
+
+(define (jais e env)
+  (cond 
+        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; preverjanje tipov ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        
+        [(je-konst?? e)
+         (let ([k (je-konst?-e e)]) 
+           (bool (and (konst? k) (integer? (konst-int k)))))]
+        [(je-bool?? e)
+         (let ([b (je-bool?-e e)])
+           (bool (and (bool? b) (boolean? (bool-b b)))))]
+        [(je-interval?? e)
+         (let ([i (je-interval?-e e)])
+           (bool (and (interval? i)
+                      (integer? (interval-od i))
+                      (integer? (interval-do i))
+                      (<= (interval-od i) (interval-do i)))))]
+        [(je-nic?? e)
+         (let ([i (je-nic?-e e)])
+           (bool (nic? i)))]
+        
+        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; podatkovni tipi ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        
+        [(bool-b (jais (je-konst? e) env)) e]   ; vrnemo konstanto, ce je celo stevilo
+        [(bool-b (jais (je-bool? e) env)) e]
+        [(bool-b (jais (je-interval? e) env)) e] ; vrnemo interval, ce so meje cela stevila in ce je spodnja meja manjsa od zgornje
+        [(bool-b (jais (je-nic? e) env)) e]
+        [(and 
+          (zdruzi? e)) (zdruzi (jais (zdruzi-e1 e)) (jais (zdruzi-e2 e)))]
+        
+        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; nadzor toka ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        
+        [(ce-potem-sicer? e) 
+         (let ([v-test (jais (ce-potem-sicer-b e))])
+           (if (bool? v-test)
+               (if (bool-b v-test)
+                   (jais (ce-potem-sicer-e1 e))
+                   (jais (ce-potem-sicer-e2 e)))
+               (error "pogoj ni logična vrednost")))]
+        
+        [(negacija? e) 
+         (let ([v-test (jais (negacija-e e))])
+           (cond [(bool-b (jais (je-bool? v-test)))                            ; negacija bool
+                   (bool (not (bool-b v-test)))]
+                 [(bool-b (jais (je-konst? v-test)))                           ; negacija konstante
+                   (konst (- (konst-int v-test)))]
+                 [(bool-b (jais (je-interval? v-test)))                        ; negacija intervala
+                   (interval 
+                    (- (interval-do v-test)) 
+                    (- (interval-od v-test)))]
+                 [#t (error "nepravilna uporaba negacije")]))]
+        
+        [(vecje? e) 
+         (let ([v1-test (jais (vecje-e1 e) env)]
+               [v2-test (jais (vecje-e2 e) env)])
+           (cond [(and
+                   (bool-b (jais (je-konst? v1-test) env))
+                   (bool-b (jais (je-konst? v2-test) env)))
+                    (bool (> (konst-int v1-test) (konst-int v2-test)))]
+                 [(and
+                   (bool-b (jais (je-interval? v1-test) env))
+                   (bool-b (jais (je-interval? v2-test) env)))
+                    (bool (>                                                   ; vecji interval je sirsi - tisti z vecjo 
+                           (- (interval-do v1-test) (interval-od v1-test))     ; absolutno razliko med zacetno in koncno tocko
+                           (- (interval-do v2-test) (interval-od v2-test))))]
+                 [#t (error "nepravilna uporaba primerjanja vecje")]))]
+        
+        [(glava? e) 
+         (let ([v-test (jais (glava-e e) env)])
+           (cond [(bool-b (jais (je-interval? v-test) env))                    ; glava intervala
+                   (interval-od v-test)]
+                 [(zdruzi? v-test)                                             ; glava para
+                   (zdruzi-e1 v-test)]
+                 [#t (error "nepravilna uporaba glave")]))]
+        
+        [(rep? e) 
+         (let ([v-test (jais (rep-e e) env)])
+           (cond [(bool-b (jais (je-interval? v-test) env))                    ; rep intervala
+                   (interval-do v-test)]
+                 [(zdruzi? v-test)                                             ; rep para
+                   (zdruzi-e2 v-test)]
+                 [#t (error "nepravilna uporaba repa")]))]
+        
+        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; aritmetika ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        
+        [(sestej? e) 
+         (let ([v1-test (jais (sestej-e1 e) env)]
+               [v2-test (jais (sestej-e2 e) env)])
+           (cond [(bool-b (jais (je-konst? v1-test) env))                                              
+                   (cond [(bool-b (jais (je-konst? v2-test) env))                   ; sestevanje konstant
+                           (konst (+ (konst-int v1-test) (konst-int v2-test)))]
+                         [(bool-b (jais (je-interval? v2-test) env))                ; sestevanje konstante in intervala
+                           (interval 
+                            (+ (konst-int v1-test) (interval-od v2-test))
+                            (+ (konst-int v1-test) (interval-do v2-test)))])]
+                 [(bool-b (jais (je-interval? v1-test) env))
+                   (cond [(bool-b (jais (je-konst? v2-test) env))                   ; sestevanje konstante in intervala
+                           (interval 
+                            (+ (interval-od v1-test) (konst-int v2-test))
+                            (+ (interval-do v1-test) (konst-int v2-test)))]
+                         [(bool-b (jais (je-interval? v2-test) env))                ; sestevanje intervalov
+                           (interval 
+                            (+ (interval-od v1-test) (interval-od v2-test))
+                            (+ (interval-do v1-test) (interval-do v2-test)))])]
+                 [#t (error "nepravilna uporaba sestevanja")]))]
+        
+        [(zmnozi? e) 
+         (let ([v1-test (jais (zmnozi-e1 e) env)]
+               [v2-test (jais (zmnozi-e2 e) env)])
+           (cond [(bool-b (jais (je-konst? v1-test) env))                                              
+                   (cond [(bool-b (jais (je-konst? v2-test) env))                   ; mnozenje konstant
+                           (konst (* (konst-int v1-test) (konst-int v2-test)))]
+                         [(bool-b (jais (je-interval? v2-test) env))                ; mnozenje konstante in intervala
+                           (let* ([a (konst-int v1-test)]
+                                  [b a]
+                                  [c (interval-od v2-test)]
+                                  [d (interval-do v2-test)])
+                             (interval 
+                              (min (* a c) (* a d) (* b c) (* b d))
+                              (max (* a c) (* a d) (* b c) (* b d))))]
+                         [#t (error "nepravilna uporaba mnozenja")])]
+                 [(bool-b (jais (je-interval? v1-test) env))
+                   (cond [(bool-b (jais (je-konst? v2-test) env))                   ; mnozenje intervala in konstante
+                           (let* ([a (interval-od v1-test)]
+                                  [b (interval-do v1-test)]
+                                  [c (konst-int v2-test)]
+                                  [d c])
+                             (interval 
+                              (min (* a c) (* a d) (* b c) (* b d))
+                              (max (* a c) (* a d) (* b c) (* b d))))]
+                         [(bool-b (jais (je-interval? v2-test) env))                ; mnozenje intervalov
+                           (let* ([a (interval-od v1-test)]
+                                  [b (interval-do v1-test)]
+                                  [c (interval-od v2-test)]
+                                  [d (interval-do v2-test)])
+                             (interval 
+                              (min (* a c) (* a d) (* b c) (* b d))
+                              (max (* a c) (* a d) (* b c) (* b d))))]
+                         [#t (error "nepravilna uporaba mnozenja")])]
+                 [#t (error "nepravilna uporaba mnozenja")]))]
+        
+        [(presek? e) 
+         (let ([v1-test (jais (presek-e1 e) env)]                                   ; evalviramo oba izraza
+               [v2-test (jais (presek-e2 e) env)])
+           (cond [(and                                                              ; preverimo, da gre za intervale
+                   (bool-b (jais (je-interval? v1-test) env))
+                   (bool-b (jais (je-interval? v2-test) env)))
+                    (let ([presek-sirine (lambda (sirsi ozji)                       ; ustvarimo pomozno funkcijo, saj je lazje iskati 
+                                           (let ([a (interval-od sirsi)]            ; presek, ce vemo kateri interval je sirsi
+                                                 [b (interval-do sirsi)]
+                                                 [c (interval-od ozji)]
+                                                 [d (interval-do ozji)])
+                                             (cond [(and (>= c a) (<= d b))         ; ozji interval je vsebovan v sirsem
+                                                     (interval c d)]
+                                                   [(and (<= c a) (>= d a))         ; ozji interval je na spodnjem robu sirsega
+                                                     (interval a d)]
+                                                   [(and (<= c b) (>= d b))         ; ozji interval je na zgornjem robu sirsega
+                                                     (interval c b)]
+                                                   [#t (nic)])))])                  ; presek je prazen
+                      
+                      (if (bool-b (jais (vecje v1-test v2-test) env))               ; poiscemo sirsi interval in ustrezno
+                          (presek-sirine v1-test v2-test)                           ; poklicemo pomozno funkcijo
+                          (presek-sirine v2-test v1-test)))]
+                 [#t (error "nepravilna uporaba primerjanja vecje")]))]
+        
+        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; spremenljivke ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        
+        [(naj-bo? e)                                                                   ; evalviramo izraz e2 v razsirjenem okolju
+         (jais (naj-bo-e2 e) (cons (cons (naj-bo-s e) (jais (naj-bo-e1 e) env)) env))]
+        [(sprem? e)                                                                    ; vrnemo vrednost prve pojavitve spremenljivke 
+         (cdr (assoc (sprem-s e) env))]
+        
+        ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; funkcije ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        
+        
+        [#t (error "sintaksa izraza ni pravilna")]))
+
+
+
+;(jais test37 null)
